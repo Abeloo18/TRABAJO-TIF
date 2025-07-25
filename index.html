@@ -1,0 +1,86 @@
+// Simulador de propagación de ondas sísmicas usando la ecuación de onda 1D
+
+"use client";
+
+import { useState } from "react";
+import { Line } from "react-chartjs-2";
+import {
+  Chart as ChartJS,
+  LineElement,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+} from "chart.js";
+
+ChartJS.register(LineElement, CategoryScale, LinearScale, PointElement);
+
+export default function OndasEspacioTiempo() {
+  const [graficoData, setGraficoData] = useState<any>(null);
+
+  function simularOnda() {
+    const dx = 1;
+    const dt = 0.001;
+    const c = 300; // velocidad de propagación (m/s)
+    const L = 200; // longitud del terreno (m)
+    const T = 0.2; // tiempo total de simulación (s)
+
+    const Nx = Math.floor(L / dx);
+    const Nt = Math.floor(T / dt);
+    const r = (c * dt / dx) ** 2;
+
+    let u0 = Array(Nx).fill(0);
+    let u1 = Array(Nx).fill(0);
+    let u2 = Array(Nx).fill(0);
+    const centro = Math.floor(Nx / 2);
+    u1[centro] = 100; // impulso inicial en el centro
+
+    // Simulación principal
+    for (let t = 0; t < Nt; t++) {
+      for (let i = 1; i < Nx - 1; i++) {
+        u2[i] = 2 * (1 - r) * u1[i] - u0[i] + r * (u1[i - 1] + u1[i + 1]);
+      }
+      u0 = [...u1];
+      u1 = [...u2];
+    }
+
+    const labels = Array.from({ length: Nx }, (_, i) => i * dx);
+
+    setGraficoData({
+      labels,
+      datasets: [
+        {
+          label: "Desplazamiento del suelo (mm)",
+          data: u2,
+          fill: false,
+          borderColor: "red",
+          tension: 0.1,
+        },
+      ],
+    });
+  }
+
+  return (
+    <div className="p-4 space-y-4">
+      <h2 className="text-xl font-bold">Simulación de Onda Sísmica</h2>
+      <button
+        onClick={simularOnda}
+        className="bg-blue-600 text-white px-4 py-2 rounded"
+      >
+        Simular
+      </button>
+      {graficoData && (
+        <Line
+          data={graficoData}
+          options={{
+            responsive: true,
+            plugins: {
+              legend: { display: true },
+              title: { display: true, text: "Propagación de onda a lo largo del terreno" },
+            },
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
